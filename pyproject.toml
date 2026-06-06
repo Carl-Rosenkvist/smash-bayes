@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smash-bayes"
+version = "0.1.0"
+description = "Bayesian emulator-based parameter calibration for the SMASH transport model"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Carl B. Rosenkvist" }
+]
+dependencies = [
+  "numpy",
+  "scipy",
+  "pandas",
+  "matplotlib",
+  "pyyaml",
+  "scikit-learn",
+  "emcee",
+  "corner",
+  "tqdm"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest",
+  "ruff",
+  "mypy",
+  "ipython"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 88
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+
+
+[project.scripts]
+smash-bayes-run-baryon-stopping = "smash_bayes.cli.run_baryon_stopping:main"
+smash-bayes-train-emulator = "smash_bayes.cli.train_emulator:main"

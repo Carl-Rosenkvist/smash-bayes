@@ -1,0 +1,23 @@
+Logging:
+    default: OFF
+
+General:
+  Modus: Collider
+  Time_Step_Mode: Fixed
+  Delta_Time: 0.1
+  End_Time: 200
+  Randomseed: -1
+Output:
+  Particles:
+    Format: [Binary]
+    Quantities: [mass, p0, pz, px, py, pdg, ncoll]
+    Only_Final: Yes
+Modi:
+  Collider:
+    Calculation_Frame: center of mass
+    Projectile:
+      Particles: {2212: 1}
+    Target:
+      Particles: {2212: 1}
+    Sqrtsnn: 17.3
+    Fermi_Motion: frozen
