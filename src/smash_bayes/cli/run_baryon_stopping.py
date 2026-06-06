@@ -67,18 +67,9 @@ def parse_args():
         description="Run a Latin-hypercube design for the baryon stopping study."
     )
 
-    parser.add_argument(
-        "--smash-exe",
-        default="smash",
-    )
-    parser.add_argument(
-        "--input-config",
-        default="config.yaml",
-    )
-    parser.add_argument(
-        "--output-base",
-        default="runs",
-    )
+    parser.add_argument("--smash-exe", default="smash")
+    parser.add_argument("--input-config", default="config.yaml")
+    parser.add_argument("--output-base", default="runs")
 
     parser.add_argument("--file-name", default="particles_custom.bin")
     parser.add_argument("--analysis-name", default="baryon_stopping")
@@ -108,6 +99,12 @@ def parse_args():
         default=["mass", "p0", "pz", "px", "py", "pdg", "ncoll"],
     )
 
+    parser.add_argument(
+        "--progress",
+        action="store_true",
+        help="Show a tqdm progress bar.",
+    )
+
     return parser.parse_args()
 
 
@@ -134,13 +131,26 @@ def main():
 
     with ProcessPoolExecutor(max_workers=args.workers) as executor:
         futures = [executor.submit(run_one, job) for job in jobs]
+        completed = as_completed(futures)
 
-        for future in as_completed(futures):
+        if args.progress:
+            from tqdm import tqdm
+
+            completed = tqdm(
+                completed,
+                total=len(futures),
+                desc="Running SMASH points",
+            )
+            write = tqdm.write
+        else:
+            write = print
+
+        for future in completed:
             try:
                 path = future.result()
-                print(f"Saved {path}", flush=True)
+                write(f"Saved {path}")
             except Exception as error:
-                print(f"Run failed: {error}", flush=True)
+                write(f"Run failed: {error}")
 
 
 if __name__ == "__main__":
