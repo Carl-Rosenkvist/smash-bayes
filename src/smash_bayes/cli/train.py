@@ -12,9 +12,8 @@ def parse_args():
         description="Train a Gaussian PCA emulator from parquet run outputs."
     )
 
-    parser.add_argument(
-        "--runs-dir", type=Path)
-    )
+    parser.add_argument("--runs-dir", type=Path)
+
     parser.add_argument("--parquet-dir", type=Path, default=None)
     parser.add_argument("--dataset-dir", type=Path, default=None)
     parser.add_argument("--emulator-path", type=Path, default=None)
@@ -24,6 +23,12 @@ def parse_args():
         type=float,
         default=0.99,
         help="Fraction of observable variance to keep in PCA, e.g. 0.99.",
+    )
+
+    parser.add_argument(
+        "--drop-nan-rows",
+        action="store_true",
+        help="Drop rows with NaNs in observables before training.",
     )
 
     return parser.parse_args()
@@ -56,24 +61,54 @@ def main():
     X = df[parameter_columns]
     Y = df[observable_columns]
 
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    emulator_path.parent.mkdir(parents=True, exist_ok=True)
-
-    X.to_parquet(dataset_dir / "X.parquet", index=False)
-    Y.to_parquet(dataset_dir / "Y.parquet", index=False)
-
     print(f"Loaded {len(files)} parquet files")
-    print(f"Total rows: {len(df)}")
-    print(f"X shape: {X.shape}")
-    print(f"Y shape: {Y.shape}")
+    print(f"Total rows before cleaning: {len(df)}")
+    print(f"X shape before cleaning: {X.shape}")
+    print(f"Y shape before cleaning: {Y.shape}")
+
+    nan_counts = Y.isna().sum()
+    nan_counts = nan_counts[nan_counts > 0]
+
+    if not nan_counts.empty:
+        print()
+        print("NaNs per observable:")
+        print(nan_counts.to_string())
+
+        bad_rows = Y.isna().any(axis=1)
+        n_bad = int(bad_rows.sum())
+
+        print()
+        print(f"Rows with at least one NaN in observables: {n_bad}")
+
+        if args.drop_nan_rows:
+            print("Dropping rows with NaNs in observables")
+
+            X = X.loc[~bad_rows].reset_index(drop=True)
+            Y = Y.loc[~bad_rows].reset_index(drop=True)
+        else:
+            raise ValueError(
+                "Y contains NaNs. Re-run with --drop-nan-rows, "
+                "or fix the parquet files."
+            )
+
+    print()
+    print(f"Total rows after cleaning: {len(X)}")
+    print(f"X shape after cleaning: {X.shape}")
+    print(f"Y shape after cleaning: {Y.shape}")
 
     if len(X) < 3:
-        raise ValueError("Need at least 3 runs to train the GP emulator.")
+        raise ValueError("Need at least 3 valid runs to train the GP emulator.")
 
     max_components = min(len(X) - 1, Y.shape[1])
 
     print(f"Maximum valid PCA components: {max_components}")
     print(f"Target retained variance fraction: {args.variance_fraction}")
+
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    emulator_path.parent.mkdir(parents=True, exist_ok=True)
+
+    X.to_parquet(dataset_dir / "X.parquet", index=False)
+    Y.to_parquet(dataset_dir / "Y.parquet", index=False)
 
     emulator = smash_bayes.GaussianPCAEmulator.train(
         X,

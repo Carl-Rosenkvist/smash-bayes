@@ -46,4 +46,4 @@ strict = false
 
 [project.scripts]
 smash-bayes-run-baryon-stopping = "smash_bayes.cli.run_baryon_stopping:main"
-smash-bayes-train-emulator = "smash_bayes.cli.train_emulator:main"
+smash-bayes-train-emulator = "smash_bayes.cli.train:main"
